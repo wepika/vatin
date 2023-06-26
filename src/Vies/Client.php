@@ -77,7 +77,6 @@ class Client
             $this->soapClient = new TimeOutSoapClient(
                 $this->wsdl,
                 [
-                    'classmap' => $this->classmap,
                     'user_agent' => 'Mozilla', // the request fails unless a (dummy) user agent is specified
                     'exceptions' => true,
                 ]
