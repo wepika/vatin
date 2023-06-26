@@ -4,8 +4,6 @@ namespace Ddeboer\Vatin;
 
 use Ddeboer\Vatin\Vies\Client;
 use Ddeboer\Vatin\Exception\ViesException;
-use Ddeboer\Vatin\Vies\Response\CheckVatResponse;
-use Ddeboer\Vatin\Vies\TimeOutClient;
 
 /**
  * Validate a VAT identification number (VATIN)
@@ -80,10 +78,6 @@ class Validator
      */
     private $viesClient;
     /**
-     * @var CheckVatResponse
-     */
-    private $viesResponse;
-    /**
      * @var int
      */
     private $time_out;
@@ -138,18 +132,18 @@ class Validator
 
         if (true === $checkExistence) {
             try {
-                $this->viesResponse = $this->getViesClient()->checkVat($countryCode, $vatin);
+                $viesResponse = $this->getViesClient()->checkVat($countryCode, $vatin);
             } catch (ViesException $e) {
                 $this->error_code = self::NO_VIES_RESPONSE;
                 return false;
             }
 
-            if (!$this->viesResponse->isValid()) {
+            if (!isset($viesResponse->valid) || !$viesResponse->valid) {
                 $this->error_code = self::VIES_RESPONSE_INVALID;
                 return false;
             }
 
-            return $this->viesResponse->isValid();
+            return $viesResponse->valid;
         }
 
         return true;
@@ -202,13 +196,5 @@ class Validator
     public function getErrorCode()
     {
         return $this->error_code;
-    }
-
-    /**
-     * @return CheckVatResponse|null
-     */
-    public function getViesResponse()
-    {
-        return $this->viesResponse;
     }
 }

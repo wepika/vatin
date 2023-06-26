@@ -25,15 +25,6 @@ class Client
      */
     private $soapClient;
 
-    /**
-     * SOAP classmap
-     *
-     * @var array
-     */
-    private $classmap = [
-        'checkVatResponse' => 'Ddeboer\Vatin\Vies\Response\CheckVatResponse'
-    ];
-
     private $timeout;
 
     /**
@@ -57,7 +48,7 @@ class Client
      * @param string $countryCode Country code
      * @param string $vatNumber   VAT number
      *
-     * @return Response\CheckVatResponse
+     * @return object
      * @throws ViesException
      */
     public function checkVat($countryCode, $vatNumber)
