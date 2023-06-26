@@ -4,6 +4,8 @@ namespace Ddeboer\Vatin;
 
 use Ddeboer\Vatin\Vies\Client;
 use Ddeboer\Vatin\Exception\ViesException;
+use Ddeboer\Vatin\Vies\Response\CheckVatResponse;
+use Ddeboer\Vatin\Vies\TimeOutClient;
 
 /**
  * Validate a VAT identification number (VATIN)
@@ -14,6 +16,23 @@ use Ddeboer\Vatin\Exception\ViesException;
  */
 class Validator
 {
+    /**
+     * @var int
+     */
+    const VIES_RESPONSE_INVALID = 1;
+    /**
+     * @var int
+     */
+    const NO_VIES_RESPONSE = 2;
+    /**
+     * @var int
+     */
+    const INVALID_FORMAT = 3;
+    /**
+     * @var int
+     */
+    private $error_code = 0;
+
     /**
      * Regular expression patterns per country code
      *
@@ -60,15 +79,23 @@ class Validator
      * @var Client
      */
     private $viesClient;
+    /**
+     * @var CheckVatResponse
+     */
+    private $viesResponse;
+    /**
+     * @var int
+     */
+    private $time_out;
 
     /**
      * Constructor
      *
-     * @param Client|null $viesClient Client for the VIES web service
+     * @param int $time_out
      */
-    public function __construct(Client $viesClient = null)
+    public function __construct($time_out = 5)
     {
-        $this->viesClient = $viesClient;
+        $this->time_out = $time_out;
     }
 
     /**
@@ -86,27 +113,61 @@ class Validator
     public function isValid($value, $checkExistence = false)
     {
         if (null === $value || '' === $value) {
+            $this->error_code = self::INVALID_FORMAT;
             return false;
         }
 
         $countryCode = substr($value, 0, 2);
         $vatin = substr($value, 2);
 
+        // additional verification for BE
+        if ($countryCode === 'BE' && !$this->checkBelgianVatNumberValidity($vatin)) {
+            $this->error_code = self::INVALID_FORMAT;
+            return false;
+        }
+
         if (false === $this->isValidCountryCode($countryCode)) {
+            $this->error_code = self::INVALID_FORMAT;
             return false;
         }
 
         if (0 === preg_match('/^(?:'.$this->patterns[$countryCode].')$/', $vatin)) {
+            $this->error_code = self::INVALID_FORMAT;
             return false;
         }
 
         if (true === $checkExistence) {
-            $result = $this->getViesClient()->checkVat($countryCode, $vatin);
+            try {
+                $this->viesResponse = $this->getViesClient()->checkVat($countryCode, $vatin);
+            } catch (ViesException $e) {
+                $this->error_code = self::NO_VIES_RESPONSE;
+                return false;
+            }
 
-            return $result->isValid();
+            if (!$this->viesResponse->isValid()) {
+                $this->error_code = self::VIES_RESPONSE_INVALID;
+                return false;
+            }
+
+            return $this->viesResponse->isValid();
         }
 
         return true;
+    }
+
+    /**
+     * @param $vat_number
+     * @return bool
+     */
+    private function checkBelgianVatNumberValidity($vat_number)
+    {
+        $vat_number_without_validity_number = substr($vat_number, 0, -2);
+        $vat_number_without_validity_number = (int)$vat_number_without_validity_number;
+
+        $part_to_compare = ((int)($vat_number_without_validity_number / 97)) * 97;
+        $validity_number = 97 - ($vat_number_without_validity_number - $part_to_compare);
+
+        return $validity_number === (int)substr($vat_number, -2);
     }
 
     /**
@@ -129,9 +190,25 @@ class Validator
     private function getViesClient()
     {
         if ($this->viesClient === null) {
-            $this->viesClient = new Client();
+            $this->viesClient = new Client($this->time_out);
         }
 
         return $this->viesClient;
+    }
+
+    /**
+     * @return int
+     */
+    public function getErrorCode()
+    {
+        return $this->error_code;
+    }
+
+    /**
+     * @return CheckVatResponse|null
+     */
+    public function getViesResponse()
+    {
+        return $this->viesResponse;
     }
 }

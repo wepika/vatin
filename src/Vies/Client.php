@@ -2,6 +2,7 @@
 
 namespace Ddeboer\Vatin\Vies;
 
+use Ddeboer\Vatin\Vies\Soap\TimeOutSoapClient;
 use SoapFault;
 use Ddeboer\Vatin\Exception\ViesException;
 
@@ -33,16 +34,21 @@ class Client
         'checkVatResponse' => 'Ddeboer\Vatin\Vies\Response\CheckVatResponse'
     ];
 
+    private $timeout;
+
     /**
      * Constructor
      *
      * @param string|null $wsdl URL to WSDL
+     * @param int $timeout
      */
-    public function __construct($wsdl = null)
+    public function __construct($timeout = 5, $wsdl = null)
     {
         if ($wsdl) {
             $this->wsdl = $wsdl;
         }
+
+        $this->timeout = $timeout;
     }
 
     /**
@@ -72,11 +78,12 @@ class Client
      * Get SOAP client
      *
      * @return \SoapClient
+     * @throws \SoapFault
      */
     private function getSoapClient()
     {
         if (null === $this->soapClient) {
-            $this->soapClient = new \SoapClient(
+            $this->soapClient = new TimeOutSoapClient(
                 $this->wsdl,
                 [
                     'classmap' => $this->classmap,
