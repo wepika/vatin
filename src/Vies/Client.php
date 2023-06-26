@@ -81,6 +81,8 @@ class Client
                     'exceptions' => true,
                 ]
             );
+
+            $this->soapClient->setTimeout($this->timeout);
         }
 
         return $this->soapClient;
