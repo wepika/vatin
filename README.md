@@ -10,6 +10,30 @@ A small PHP library for validating VAT identification numbers (VATINs).
 Installation
 ------------
 
+### To use this fork
+
+Add this into `repositories` in your composer.json
+
+```
+{
+  "type": "package",
+  "package": {
+    "name": "wepika/vatin",
+    "version": "dev-master",
+    "source": {
+      "url": "https://github.com/wepika/vatin.git",
+      "type": "git",
+      "reference": "master"
+    },
+    "autoload": {
+      "classmap": [""]
+    }
+  }
+}
+```
+
+### To use the original lib
+
 This library is available on [Packagist](https://packagist.org/packages/ddeboer/vatin):
 
 ```bash
